@@ -2,6 +2,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from enum import Enum
+from Enviroment.GameRules import GameRules
 
 class Move(Enum):
     N=(-1,0)
@@ -15,8 +16,8 @@ class Move(Enum):
     
 class GameState(Enum):
     ON=0
-    WinFirst=1
-    WinSecond=2
+    Win=1
+    Loss=-1
 
 
 class Board:
@@ -66,39 +67,28 @@ class Board:
         self.touched_fields.add(self.ball)
         self.goalsfirst=[(0,self.n//2-1),(0,self.n//2),(0,self.n//2+1)]
         self.goalssecond=[(m+1,n//2-1),(m+1,n//2),(m+1,n//2+1)]
-        self.board = self.create_graph(n,m)
-        print(self.touched_fields)
+        self.board_graph = self.create_graph(n,m)
+        self.touched_fields.difference_update(self.goalsfirst)
+        self.touched_fields.difference_update(self.goalssecond)
+
+        #print(self.touched_fields)
         
     
-    def make_moves(self,moves,player):
-        #move_dict = {Move.N:(-1,0),Move.NE:(-1,1),Move.E:(0,1),Move.SE:(1,1),Move.S:(1,0),Move.SW:(1,-1),Move.W:(0,-1),Move.NW:(-1,-1)}
+    def make_moves(self,moves,player=-1):
         moved= set()
         if len(moves)==0:
-            raise RuntimeError("must make a move")
+            return False
         for move in moves:
-            move_coord = move
-            next_ball=tuple(a + b for a, b in zip(self.ball, move_coord))
-            if (next_ball,self.ball) not in self.board.edges:
-                raise RuntimeError("invalid move")
-            if self.board.edges[(self.ball,next_ball)]['weight']!=0:
-                raise RuntimeError("invalid move")
-            if self.ball not in self.touched_fields:
-                raise RuntimeError("invalid move")
+            next_ball= GameRules.is_valid_move(self,move)
+            if  next_ball is False:
+                return False
             moved.add(next_ball)
-            self.board.add_edge(self.ball,next_ball,weight=player)
+            self.board_graph.add_edge(self.ball,next_ball,weight=player)
             self.ball=next_ball
-            if self.ball in self.goalsfirst:
-                return GameState.WinSecond
-            if self.ball in self.goalssecond:
-                return GameState.WinFirst
         if self.ball in self.touched_fields:
-            raise RuntimeError("not enought moves")
+            return False
         self.touched_fields.update(moved)
-        #if self.ball in self.goalsfirst:
-        #    return GameState.WinSecond
-        #if self.ball in self.goalssecond:
-        #    return GameState.WinFirst
-        return GameState.ON
+        return True
             
 
 
@@ -106,19 +96,21 @@ class Board:
         plt.figure(figsize=(8, 8))
 
         # Generate the layout for the nodes (grid positioning)
-        pos = {(x, y): (y, -x) for x, y in self.board.nodes}  # Adjusting positions to fit the grid
-        edges_weight_2 = [(u, v) for u, v, d in self.board.edges(data=True) if d['weight'] == 2]
-        edges_weight_4 = [(u, v) for u, v, d in self.board.edges(data=True) if d['weight'] == 4]
-        edges_weight_1 = [(u, v) for u, v, d in self.board.edges(data=True) if d['weight'] == 1]
-        edges_weight_0 = [(u, v) for u, v, d in self.board.edges(data=True) if d['weight'] == 0]
-        edges_weight_neg = [(u, v) for u, v, d in self.board.edges(data=True) if d['weight'] == -1]
+        pos = {(x, y): (y, -x) for x, y in self.board_graph.nodes}  # Adjusting positions to fit the grid
+        edges_weight_2 = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == 2]
+        edges_weight_4 = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == 4]
+        edges_weight_1 = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == 1]
+        edges_weight_0 = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == 0]
+        edges_weight_neg = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == -1]
 
-        nx.draw_networkx_nodes(self.board, pos, nodelist=[self.ball],node_size=50, node_color='black')
-        nx.draw_networkx_edges(self.board, pos, edgelist=edges_weight_1, width=3, edge_color='blue')  # Bold for weight 1
-        nx.draw_networkx_edges(self.board, pos, edgelist=edges_weight_4, width=3, edge_color='green')
-        nx.draw_networkx_edges(self.board, pos, edgelist=edges_weight_2, width=3, edge_color='orange')  # Normal for weight 0
-        nx.draw_networkx_edges(self.board, pos, edgelist=edges_weight_neg, width=3, edge_color='black')  # Bold for weight 1
-        nx.draw_networkx_edges(self.board, pos, edgelist=edges_weight_0, width=1, edge_color='gray')  # Normal for weight 0
+        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goalsfirst,node_size=20, node_color='cyan')
+        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goalssecond,node_size=20, node_color='red')
+        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=[self.ball],node_size=50, node_color='black')
+        nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_1, width=3, edge_color='blue')  # Bold for weight 1
+        nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_4, width=3, edge_color='green')
+        nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_2, width=3, edge_color='orange')  # Normal for weight 0
+        nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_neg, width=3, edge_color='black')  # Bold for weight 1
+        nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_0, width=1, edge_color='gray')  # Normal for weight 0
 
         plt.show()
 
