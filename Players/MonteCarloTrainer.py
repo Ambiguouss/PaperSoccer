@@ -59,11 +59,21 @@ class Node:
     def selection(self):
         if self.number_of_visits==0:
             self.rollout()
+            return
         else:
             self.expand()
             if self.is_leaf():
+                self.rollout()
                 return
-            n = np.random.choice(self.children)
+            max_val=-1
+            for child in self.children:
+                if child.number_of_visits==0:
+                    n=child
+                    break
+                val = child.number_of_wins/child.number_of_visits+np.sqrt(2)*np.sqrt(np.log(self.number_of_visits)/child.number_of_visits)
+                if val>max_val:
+                    n=child
+                    max_val=val
             n.selection()
 
     def to_dict(self):
