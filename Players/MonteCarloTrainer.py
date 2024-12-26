@@ -61,6 +61,8 @@ class Node:
             self.rollout()
         else:
             self.expand()
+            if self.is_leaf():
+                return
             n = np.random.choice(self.children)
             n.selection()
 
@@ -96,7 +98,7 @@ class MonteCarloTrainer():
     
     def train(self):
         tree = Node(self.board)
-        for x in range(1000):
+        for x in range(1000000):
             print(x)
             tree.selection()
         

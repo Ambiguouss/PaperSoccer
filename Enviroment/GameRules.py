@@ -24,6 +24,8 @@ class GameRules:
     @staticmethod
     def find_valid_moves(board):
         valid_moves=[]
+        if GameRules.in_player1_goal(board) or GameRules.in_player2_goal(board):
+            return valid_moves
         for e in board.board_graph.edges(board.ball):
             e_direction = tuple(b -a for a, b in zip(e[0], e[1]))
             if board.board_graph.edges[e]['weight']!=0:
