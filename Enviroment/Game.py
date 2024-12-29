@@ -10,10 +10,23 @@ class Game:
         self.board=board
         self.player1=player1
         self.player2=player2
-    def start_game(self,draw=False):
+    def start_game(self,draw=False,res=False):
         player=self.player1
         opponent = self.player2
         last_move=None
+
+        if GameRules.in_player1_goal(self.board):
+            self.player1.handle_loss()
+            self.player2.handle_win()
+            self.result="player2 win"
+            return
+            
+        elif GameRules.in_player2_goal(self.board):
+            self.player2.handle_loss()
+            self.player1.handle_win()
+            self.result="player1 win"
+            return
+
         while True:
             moves = player.make_moves(copy.deepcopy(self.board),last_move)
             game_state = self.board.make_moves(moves,1 if player==self.player1 else 2)
@@ -36,3 +49,5 @@ class Game:
             if draw:
                 self.board.draw()
             player,opponent = opponent,player
+        if res:
+            print(self.result)

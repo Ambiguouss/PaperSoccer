@@ -75,19 +75,19 @@ class Board:
         
     
     def make_moves(self,moves,player=-1):
-        moved= set()
+        #moved= set()
         if len(moves)==0:
             return False
         for move in moves:
             next_ball= GameRules.is_valid_move(self,move)
             if  next_ball is False:
                 return False
-            moved.add(next_ball)
+            #moved.add(next_ball)
             self.board_graph.add_edge(self.ball,next_ball,weight=player)
             self.ball=next_ball
         if self.ball in self.touched_fields:
             return False
-        self.touched_fields.update(moved)
+        self.touched_fields.add(self.ball)
         return True
             
 
