@@ -5,3 +5,5 @@ class Player:
         pass
     def handle_loss(self):
         pass
+    def set_player(self,id):
+        self.player=id

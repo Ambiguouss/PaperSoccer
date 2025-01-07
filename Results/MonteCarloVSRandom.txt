@@ -1,0 +1,2 @@
+monte carlo blue site win ratio:0.94
+monte carlo red site win ratio:0.96

@@ -65,32 +65,90 @@ class Board:
         self.ball = (m//2+1,n//2)
         self.touched_fields=set()
         self.touched_fields.add(self.ball)
-        self.goalsfirst=[(0,self.n//2-1),(0,self.n//2),(0,self.n//2+1)]
-        self.goalssecond=[(m+1,n//2-1),(m+1,n//2),(m+1,n//2+1)]
+        self.goals_first=[(0,self.n//2-1),(0,self.n//2),(0,self.n//2+1)]
+        self.goals_second=[(m+1,n//2-1),(m+1,n//2),(m+1,n//2+1)]
         self.board_graph = self.create_graph(n,m)
-        self.touched_fields.difference_update(self.goalsfirst)
-        self.touched_fields.difference_update(self.goalssecond)
+        self.touched_fields.difference_update(self.goals_first)
+        self.touched_fields.difference_update(self.goals_second)
 
         #print(self.touched_fields)
         
     
     def make_moves(self,moves,player=-1):
-        #moved= set()
-        if len(moves)==0:
+        if not moves:
             return False
+        
         for move in moves:
             next_ball= GameRules.is_valid_move(self,move)
             if  next_ball is False:
                 return False
-            #moved.add(next_ball)
             self.board_graph.add_edge(self.ball,next_ball,weight=player)
             self.ball=next_ball
+        
         if self.ball in self.touched_fields:
             return False
+        
         self.touched_fields.add(self.ball)
         return True
-            
+    
+    def fast_make_moves(self,moves,player=-1):
+        '''
+        doesent check if moves are valid.
+        '''
+        if not moves:
+            return True
+        cumulative_sums = np.cumsum(moves, axis=0)
+        #print(cumulative_sums)
+        #print(self.ball)
+        #print(self.ball+cumulative_sums)
+        all_points = [self.ball, self.ball + cumulative_sums]
 
+        # Generate pairs of pairs
+        pairs_of_pairs = np.stack([all_points[:-1], all_points[1:]], axis=1)
+
+        self.board_graph.add_egdes(pairs_of_pairs,weight=player)
+        self.touched_fields.add(moves[-1][1])
+        return True
+
+    def fast_make_move(self,move,player=-1):
+        '''
+        doesent check if moves are valid.
+        '''
+        if not move:
+            return False
+        #print(self.ball,move)
+        next_ball=tuple(a + b for a, b in zip(self.ball, move))
+        self.board_graph.add_edge(self.ball,next_ball,weight=player)
+        if next_ball in self.touched_fields:
+            res=True
+        else:
+            res=False
+        self.touched_fields.add(next_ball)
+        self.ball=next_ball
+        return res
+            
+    def to_vector(self):
+        vec=[]
+        for node in self.goals_first:
+            for e in self.board_graph.neighbors(node):
+                if self.board_graph.edges[(node,e)]["weight"]==0:
+                    vec.append(0)
+                else:
+                    vec.append(1)
+        for i in range(1,1+self.m):
+            for j in range(self.n):
+                for e in self.board_graph.neighbors((i,j)):
+                    if self.board_graph.edges[((i,j),e)]["weight"]==0:
+                        vec.append(0)
+                    else:
+                        vec.append(1)
+        for node in self.goals_second:
+            for e in self.board_graph.neighbors(node):
+                if self.board_graph.edges[(node,e)]["weight"]==0:
+                    vec.append(0)
+                else:
+                    vec.append(1)
+        return np.expand_dims(np.array(vec), axis=0)
 
     def draw(self):
         plt.figure(figsize=(8, 8))
@@ -103,8 +161,8 @@ class Board:
         edges_weight_0 = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == 0]
         edges_weight_neg = [(u, v) for u, v, d in self.board_graph.edges(data=True) if d['weight'] == -1]
 
-        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goalsfirst,node_size=20, node_color='cyan')
-        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goalssecond,node_size=20, node_color='red')
+        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goals_first,node_size=20, node_color='cyan')
+        nx.draw_networkx_nodes(self.board_graph, pos, nodelist=self.goals_second,node_size=20, node_color='red')
         nx.draw_networkx_nodes(self.board_graph, pos, nodelist=[self.ball],node_size=50, node_color='black')
         nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_1, width=3, edge_color='blue')  # Bold for weight 1
         nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_4, width=3, edge_color='green')
