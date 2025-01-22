@@ -7,7 +7,7 @@ from Enviroment.Game import Game
 from Players.RandomPlayer import RandomPlayer
 from Enviroment.Board import Board
 from Players.betterRandom import betterRandomPlayer
-
+from Players.utils import find_lethal
 
 
 class Node:
@@ -112,6 +112,9 @@ class MonteCarloPlayer2(Player):
     def make_moves(self, board, last_move):
         self._update_state(last_move)
         moves=[]
+        lethal = find_lethal(board,self.player)
+        if lethal is not None:
+            return moves+lethal
         while self.state.my_move:
             for _ in range(self.playouts):
                 selected = self.state.selection()

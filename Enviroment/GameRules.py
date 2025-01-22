@@ -1,10 +1,10 @@
 import numpy as np
-
+from copy import deepcopy
 class GameRules:
 
     number_to_dir = {0: ((-1,0)),1:(-1,1),2:(0,1),3:(1,1),4:(1,0),5:(1,-1),6:(0,-1),7:(-1,-1)}
     dir_to_number = {v: k for k, v in number_to_dir.items()}
-
+    compass_to_dir = {'N':(-1,0),'NE':(-1,1),'E':(0,1),'SE':(1,1),'S':(1,0),'SW':(1,-1),'W':(0,-1),'NW':(-1,-1)}
     
 
     @staticmethod
@@ -41,7 +41,7 @@ class GameRules:
     
     #might have a problem if there are a lot of valid moves
     @staticmethod
-    def find_valid_moves(board,max_moves=100):
+    def find_valid_moves(board,max_moves=500):
         valid_moves=[]
         if GameRules.in_player1_goal(board) or GameRules.in_player2_goal(board):
             return valid_moves
@@ -71,7 +71,7 @@ class GameRules:
                 board.board_graph.edges[current, neighbor]['weight'] = -1
                 board.ball = neighbor
 
-                GameRules._explore_moves(board, neighbor, valid_moves, current_path + [direction], max_moves-len(valid_moves))
+                GameRules._explore_moves(board, deepcopy(neighbor), valid_moves, current_path + [direction], max_moves-len(valid_moves))
 
                 board.ball = current
                 board.board_graph.edges[current, neighbor]['weight'] = 0

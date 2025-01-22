@@ -21,6 +21,7 @@ class GameState(Enum):
 
 
 class Board:
+    
     def create_graph(self,n,m):
         G = nx.empty_graph()
         G.add_nodes_from([(0,n//2-1),(0,n//2),(0,n//2+1),(m+1,n//2-1),(m+1,n//2),(m+1,n//2+1)])
@@ -69,10 +70,9 @@ class Board:
         self.goals_second=[(m+1,n//2-1),(m+1,n//2),(m+1,n//2+1)]
         self.board_graph = self.create_graph(n,m)
         self.touched_fields.difference_update(self.goals_first)
-        self.touched_fields.difference_update(self.goals_second)
-
+        self.touched_fields.difference_update(self.goals_second)    
         #print(self.touched_fields)
-        
+    
     
     def make_moves(self,moves,player=-1):
         if not moves:
@@ -91,24 +91,29 @@ class Board:
         self.touched_fields.add(self.ball)
         return True
     
-    def fast_make_moves(self,moves,player=-1):
-        '''
-        doesent check if moves are valid.
-        '''
-        if not moves:
-            return True
-        cumulative_sums = np.cumsum(moves, axis=0)
-        #print(cumulative_sums)
-        #print(self.ball)
-        #print(self.ball+cumulative_sums)
-        all_points = [self.ball, self.ball + cumulative_sums]
-
-        # Generate pairs of pairs
-        pairs_of_pairs = np.stack([all_points[:-1], all_points[1:]], axis=1)
-
-        self.board_graph.add_egdes(pairs_of_pairs,weight=player)
-        self.touched_fields.add(moves[-1][1])
-        return True
+    #def fast_make_moves(self,moves,player=-1):
+    #    '''
+    #    doesent check if moves are valid.
+    #    '''
+    #    if not moves:
+    #        return True
+    #    cumulative_sums = np.cumsum(moves, axis=0)
+    #    #print(cumulative_sums)
+    #    #print(self.ball)
+    #    #print(self.ball+cumulative_sums)
+    #    print(self.ball + cumulative_sums)
+    #    all_points = self.ball + cumulative_sums
+    #    all_points= np.insert(all_points, 0, self.ball,axis=0)
+#
+    #    
+    #    # Generate pairs of pairs
+    #    print(all_points)
+    #    pairs_of_pairs = np.array([[tuple(all_points[i]),tuple(all_points[i+1])] for i in range(len(all_points) - 1)])
+    #    print(pairs_of_pairs)
+#
+    #    self.board_graph.add_edges_from(pairs_of_pairs,weight=player)
+    #    self.touched_fields.add(moves[-1][1])
+    #    return True
 
     def fast_make_move(self,move,player=-1):
         '''
@@ -129,12 +134,6 @@ class Board:
             
     def to_vector(self):
         vec=[]
-        for node in self.goals_first:
-            for e in self.board_graph.neighbors(node):
-                if self.board_graph.edges[(node,e)]["weight"]==0:
-                    vec.append(0)
-                else:
-                    vec.append(1)
         for i in range(1,1+self.m):
             for j in range(self.n):
                 for e in self.board_graph.neighbors((i,j)):
@@ -142,13 +141,15 @@ class Board:
                         vec.append(0)
                     else:
                         vec.append(1)
-        for node in self.goals_second:
-            for e in self.board_graph.neighbors(node):
-                if self.board_graph.edges[(node,e)]["weight"]==0:
-                    vec.append(0)
-                else:
-                    vec.append(1)
-        return np.expand_dims(np.array(vec), axis=0)
+        return np.expand_dims(np.array(vec), axis=0)#-get_empty_vector()
+    def to_conv_vector(self):
+        res = np.zeros((2*self.m-1,2*self.n-1))
+        for i in range(1,1+self.m):
+            for j in range(self.n):
+                if (i,j) in self.touched_fields:
+                      res[i-1][j]=1
+        res[self.ball[0]][self.ball[1]]=2
+        return res
 
     def draw(self):
         plt.figure(figsize=(8, 8))
@@ -171,5 +172,27 @@ class Board:
         nx.draw_networkx_edges(self.board_graph, pos, edgelist=edges_weight_0, width=1, edge_color='gray')  # Normal for weight 0
 
         plt.show()
+    
 
-Board()
+def get_empty_vector():
+    #ughhhhhhhh
+    return np.array([0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1 ,0, 1, 1, 1, 0, 1, 1, 0, 0 ,0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1 ,0 ,0 ,1, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 1, 0, 0,
+        1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,1 ,0, 0,1, 1, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1 ,0 ,0 ,1, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1 ,0 ,0 ,0, 0,0, 0, 0, 0, 0, 0,
+        0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0 ,0 ,1 ,0, 1])
